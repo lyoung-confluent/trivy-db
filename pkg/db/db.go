@@ -24,10 +24,41 @@ var (
 	dbDir string
 )
 
-type Operation interface {
+type ReadOnlyOperation interface {
 	GetVulnerabilityDetail(cveID string) (detail map[types.SourceID]types.VulnerabilityDetail, err error)
 	GetAdvisories(source string, pkgName string) (advisories []types.Advisory, err error)
 	GetVulnerability(vulnerabilityID string) (vulnerability types.Vulnerability, err error)
+}
+
+type Operation interface {
+	BatchUpdate(fn func(*bolt.Tx) error) (err error)
+
+	GetVulnerabilityDetail(cveID string) (detail map[types.SourceID]types.VulnerabilityDetail, err error)
+	PutVulnerabilityDetail(tx *bolt.Tx, vulnerabilityID string, source types.SourceID,
+		vulnerability types.VulnerabilityDetail) (err error)
+	DeleteVulnerabilityDetailBucket() (err error)
+
+	ForEachAdvisory(sources []string, pkgName string) (value map[string]Value, err error)
+	GetAdvisories(source string, pkgName string) (advisories []types.Advisory, err error)
+
+	PutVulnerabilityID(tx *bolt.Tx, vulnerabilityID string) (err error)
+	ForEachVulnerabilityID(fn func(tx *bolt.Tx, cveID string) error) (err error)
+
+	PutVulnerability(tx *bolt.Tx, vulnerabilityID string, vulnerability types.Vulnerability) (err error)
+	GetVulnerability(vulnerabilityID string) (vulnerability types.Vulnerability, err error)
+
+	SaveAdvisoryDetails(tx *bolt.Tx, cveID string) (err error)
+	PutAdvisoryDetail(tx *bolt.Tx, vulnerabilityID, pkgName string, nestedBktNames []string, advisory interface{}) (err error)
+	DeleteAdvisoryDetailBucket() error
+
+	PutDataSource(tx *bolt.Tx, bktName string, source types.DataSource) (err error)
+
+	// For Red Hat
+	PutRedHatRepositories(tx *bolt.Tx, repository string, cpeIndices []int) (err error)
+	PutRedHatNVRs(tx *bolt.Tx, nvr string, cpeIndices []int) (err error)
+	PutRedHatCPEs(tx *bolt.Tx, cpeIndex int, cpe string) (err error)
+	RedHatRepoToCPEs(repository string) (cpeIndices []int, err error)
+	RedHatNVRToCPEs(nvr string) (cpeIndices []int, err error)
 }
 
 type Config struct {
